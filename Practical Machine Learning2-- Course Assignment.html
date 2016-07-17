@@ -1,0 +1,364 @@
+<html>
+
+<head>
+<style type="text/css">
+.knitr .inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage .left {
+  text-align: left;
+}
+.rimage .right {
+  text-align: right;
+}
+.rimage .center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+<title>Practical Machine Learning-- Course Assignment</title>
+</head>
+
+<body>
+<h1> Practical Machine Learning/ Prediction Assignment </h1>
+<h2> Course Assignment:- Prediction </h2>
+<h3>  by Geoffrey Hill </h3>
+
+<p>Please find below my submission for the course project.  </p>
+<h2> Background</h2>
+
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). </p>
+
+<h3>Data</h3>
+<p>
+The training data for this project are available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a> </p>
+<p>
+
+The test data are available here: <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a>
+</p>
+
+
+
+The data for this project come from this source: <a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a>. 
+
+<h1>  Overview and Summary </h1>
+
+<p>The training data was loaded and perused.  The testing data wasn't accessed until after the training had been performed.  The outcome to be measured, "classe", recorded a correct exercise as "A" with other types of errors were recorded as "B" to "E".  
+
+A set.seed value was used to help reproducibility.  Libraries and packages were loaded as outlined below.  
+
+The training set of data was further subsetted, with 60% being used for training purposes, and the remaining 40% being used for subsequent testing of our model(s).  The most accurate model was selected and used to make the final prediction.  
+
+Out of interest, I re-ran the test using several different methods for training, and also recorded the time taken to generate the models.  The random Forest method was most accurate but also took the longest time.  As a final step I plotted accuracy vs time for several different methods I tried.  </p>
+
+<h2> Result-- sneak peak  </h2>
+<p>The model generated using randomForest predicted the following results:
+##  [1] B A B A A E D B A A B C B A E E A B B B
+</p>
+
+<h1> Importing Data, and subsetting the training group </h1>
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">setwd</span><span class="hl std">(</span><span class="hl str">&quot;C:/@Coursera/@assignment_1&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">library</span><span class="hl std">(doParallel)</span>
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'doParallel' was built under R version 3.3.1
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'foreach' was built under R version 3.3.1
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(caret);</span><span class="hl kwd">require</span><span class="hl std">(rpart);</span> <span class="hl kwd">require</span><span class="hl std">(rpart.plot);</span>
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'caret' was built under R version 3.3.1
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'rpart.plot' was built under R version 3.3.1
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">cl</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">detectCores</span><span class="hl std">()</span>
+<span class="hl kwd">registerDoParallel</span><span class="hl std">(cl</span><span class="hl opt">-</span><span class="hl num">1</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+<p> The test data was downloaded from: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv, and stored locally.  
+Next a set.seed was made to help with reproducibility, 
+
+</p>
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">13579</span><span class="hl std">)</span>
+<span class="hl std">atrain</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;pml-training.csv&quot;</span>
+<span class="hl std">dtrain</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(atrain,</span> <span class="hl kwc">header</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">,</span>  <span class="hl kwc">na.strings</span><span class="hl std">=</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;NA&quot;</span><span class="hl std">,</span><span class="hl str">&quot;#DIV/0!&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;&quot;</span><span class="hl std">))</span>
+<span class="hl std">trainingset</span><span class="hl kwb">&lt;-</span><span class="hl std">dtrain[,</span><span class="hl kwd">colSums</span><span class="hl std">(</span><span class="hl kwd">is.na</span><span class="hl std">(dtrain))</span> <span class="hl opt">==</span> <span class="hl num">0</span><span class="hl std">]</span>
+</pre></div>
+</div></div>
+
+<p>The training data was further subsetted, with 60% to be used for training models, and the remaining 40% to test the proposed models.  Non-prognostic data such as (1) columns with all NA values, (2) timestamp data, and (3) other identifiers, were removed.  </p>
+
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">dim</span><span class="hl std">(dtrain)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 19622   160
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(dtrain</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-3-1.png" title="plot of chunk unnamed-chunk-3" alt="plot of chunk unnamed-chunk-3" class="plot" /></div><div class="rcode">
+<div class="source"><pre class="knitr r"><span class="hl std">trainingset</span> <span class="hl kwb">&lt;-</span> <span class="hl std">trainingset[,</span> <span class="hl opt">-</span><span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1</span><span class="hl opt">:</span><span class="hl num">7</span><span class="hl std">)]</span>
+<span class="hl std">trim_dtrain</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">createDataPartition</span><span class="hl std">(</span><span class="hl kwc">y</span><span class="hl std">=trainingset</span><span class="hl opt">$</span><span class="hl std">classe,</span> <span class="hl kwc">p</span><span class="hl std">=</span><span class="hl num">0.60</span><span class="hl std">,</span> <span class="hl kwc">list</span><span class="hl std">=</span><span class="hl num">FALSE</span><span class="hl std">)</span>
+
+<span class="hl std">TR_dtrain</span> <span class="hl kwb">&lt;-</span> <span class="hl std">trainingset[trim_dtrain, ]</span>
+<span class="hl std">TEST_dtrain</span> <span class="hl kwb">&lt;-</span> <span class="hl std">trainingset[</span><span class="hl opt">-</span><span class="hl std">trim_dtrain, ]</span>
+
+<span class="hl kwd">dim</span><span class="hl std">(TEST_dtrain);</span> <span class="hl kwd">dim</span><span class="hl std">(TR_dtrain)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 7846   53
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 11776    53
+</pre></div>
+</div></div>
+<p>  Then the fun could begin.  Firstly I made a CART type model using RPART, and then plotted a chart to try to visualise what was going on.  </p>
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com">##</span>
+<span class="hl std">a1start</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">proc.time</span><span class="hl std">()</span>
+<span class="hl std">model1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rpart</span><span class="hl std">(classe</span> <span class="hl opt">~</span> <span class="hl std">.,</span> <span class="hl kwc">data</span><span class="hl std">=TR_dtrain,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;class&quot;</span><span class="hl std">)</span>
+<span class="hl com"># couldn't get fancyRpart or anything else to be readable!</span>
+<span class="hl com">#rpart.plot(model1, type=2, extra=101, under=TRUE, tweak=2)</span>
+<span class="hl kwd">rpart.plot</span><span class="hl std">(model1,</span> <span class="hl kwc">varlen</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">,</span> <span class="hl kwc">faclen</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">0.7</span><span class="hl std">,</span> <span class="hl kwc">type</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">extra</span><span class="hl std">=</span><span class="hl num">102</span><span class="hl std">,</span> <span class="hl kwc">under</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">,</span> <span class="hl kwc">gap</span><span class="hl std">=</span><span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">space</span> <span class="hl std">=</span> <span class="hl num">0</span><span class="hl std">,</span> <span class="hl kwc">main</span> <span class="hl std">=</span> <span class="hl str">&quot;Model Tree fitted using rpart&quot;</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" class="plot" /></div></div>
+<p>  The next step is to test this model against the remaining 40% of the training data that has been "unseen" by our training.  I recorded the time taken for the calculations also. </p>
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">prediction1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(model1, TEST_dtrain,</span> <span class="hl kwc">type</span> <span class="hl std">=</span> <span class="hl str">&quot;class&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">confusionMatrix</span><span class="hl std">(prediction1, TEST_dtrain</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2029  316   34  180   56
+##          B   63  826   72   32   93
+##          C   65  138 1084  229  177
+##          D   45  129   85  701   64
+##          E   30  109   93  144 1052
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.7255          
+##                  95% CI : (0.7154, 0.7353)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.6507          
+##  Mcnemar's Test P-Value : &lt; 2.2e-16       
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9091   0.5441   0.7924  0.54510   0.7295
+## Specificity            0.8956   0.9589   0.9060  0.95076   0.9413
+## Pos Pred Value         0.7759   0.7606   0.6403  0.68457   0.7367
+## Neg Pred Value         0.9612   0.8976   0.9538  0.91425   0.9392
+## Prevalence             0.2845   0.1935   0.1744  0.16391   0.1838
+## Detection Rate         0.2586   0.1053   0.1382  0.08934   0.1341
+## Detection Prevalence   0.3333   0.1384   0.2158  0.13051   0.1820
+## Balanced Accuracy      0.9023   0.7515   0.8492  0.74793   0.8354
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">p1</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">postResample</span><span class="hl std">(prediction1, TEST_dtrain</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+<span class="hl std">p1</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  Accuracy     Kappa 
+## 0.7254652 0.6506937
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">p1[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 0.7254652
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">OutofSample</span> <span class="hl kwb">=</span> <span class="hl num">1</span><span class="hl opt">-</span><span class="hl std">p1[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+
+<span class="hl std">a1time</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">proc.time</span><span class="hl std">()</span> <span class="hl opt">-</span> <span class="hl std">a1start</span>
+<span class="hl std">a1time</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##    user  system elapsed 
+##    1.84    0.03    1.87
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">a1_acc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">p1[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+</pre></div>
+</div></div>
+<p> The accuracy reported was 0.759, with out of sample errors as 0.241.  
+
+So these results were OK, and quick!  Next step is to use a randomForest model to see if there are improved predictions. </p>
+
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com">#require(randomForest); a2start&lt;- proc.time()</span>
+<span class="hl com">#modfitA&lt;- train(classe~.,data=TR_dtrain, method=&quot;rf&quot;,verbose=FALSE)</span>
+<span class="hl com">#a2time &lt;- proc.time() - a2start</span>
+<span class="hl com">#a2time</span>
+</pre></div>
+</div></div>
+<p> Again, to repeat the prediction process using the TEST_ component of the original training data </p>
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">predict2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(modfitA, TEST_dtrain)</span> <span class="hl com">#type = &quot;class&quot;</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: randomForest
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'randomForest' was built under R version 3.3.1
+</pre></div>
+<div class="message"><pre class="knitr r">## randomForest 4.6-12
+</pre></div>
+<div class="message"><pre class="knitr r">## Type rfNews() to see new features/changes/bug fixes.
+</pre></div>
+<div class="message"><pre class="knitr r">## 
+## Attaching package: 'randomForest'
+</pre></div>
+<div class="message"><pre class="knitr r">## The following object is masked from 'package:ggplot2':
+## 
+##     margin
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">confusionMatrix</span><span class="hl std">(predict2, TEST_dtrain</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2231    5    0    0    0
+##          B    0 1511    4    0    0
+##          C    0    2 1359    5    2
+##          D    0    0    5 1281    1
+##          E    1    0    0    0 1439
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9968          
+##                  95% CI : (0.9953, 0.9979)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.996           
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9996   0.9954   0.9934   0.9961   0.9979
+## Specificity            0.9991   0.9994   0.9986   0.9991   0.9998
+## Pos Pred Value         0.9978   0.9974   0.9934   0.9953   0.9993
+## Neg Pred Value         0.9998   0.9989   0.9986   0.9992   0.9995
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2843   0.1926   0.1732   0.1633   0.1834
+## Detection Prevalence   0.2850   0.1931   0.1744   0.1640   0.1835
+## Balanced Accuracy      0.9993   0.9974   0.9960   0.9976   0.9989
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">p2</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">postResample</span><span class="hl std">(predict2, TEST_dtrain</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+<span class="hl std">p2</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  Accuracy     Kappa 
+## 0.9968137 0.9959695
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">p2[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 0.9968137
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">OutofSample</span> <span class="hl kwb">=</span> <span class="hl num">1</span><span class="hl opt">-</span><span class="hl std">p2[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+<span class="hl std">a2_acc</span> <span class="hl kwb">&lt;-</span> <span class="hl std">p2[[</span><span class="hl str">&quot;Accuracy&quot;</span><span class="hl std">]]</span>
+</pre></div>
+</div></div>
+<p> Much better!  The reported accuracy is 0.9924 and the Out of Sample error is 0.0076.  This would be enough to go ahead with the making our predictions based on the (as yet unseen) testing data.  In the next step we access that for the first time, and make our predictions.  </p>
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">atest</span><span class="hl kwb">&lt;-</span> <span class="hl str">&quot;pml-testing.csv&quot;</span>
+<span class="hl std">finaltesting</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(atest,</span> <span class="hl kwc">header</span><span class="hl std">=</span><span class="hl num">TRUE</span><span class="hl std">)</span>
+
+<span class="hl std">predictfinal</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(modfitA, finaltesting)</span> <span class="hl com">#, type=&quot;class&quot;</span>
+<span class="hl std">predictfinal</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E
+</pre></div>
+</div></div>
+
+<H1>That could be the end of the assignment  </H1>
+<H2>But I did a little extra!  </H2>
+<p>
+I won't bore you with the full code as spat out by R, but I repeated the steps above using additional models and measured accuracy, and time taken.  
+
+Model1 (above) used rpart, model2 used randomForest.  I repeated these steps and used:
+(model3) -- method = "gbm", or stochastic gradient boosting.
+(model4) -- method="nnet", or neural network.
+(model5) -- method="nb"  , or naive bayes.
+(model6) -- method="svmRadial", or Support Vector Machine with radial basis function.
+(model7) -- method="lvq", or learning vector quantisation.  
+
+
+</p>
+
+
+
+<div class="chunk" id="unnamed-chunk-10"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(</span><span class="hl str">&quot;calibrate&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="warning"><pre class="knitr r">## Warning: package 'calibrate' was built under R version 3.3.1
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: MASS
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com">## now make a table, to plot</span>
+<span class="hl std">r_part</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a1_acc, a1time)</span>
+<span class="hl std">rF</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a2_acc, a2time)</span>
+<span class="hl std">gbm_</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a3_acc, a3time)</span>
+<span class="hl std">n_net</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a4_acc, a4time)</span>
+<span class="hl std">n_b</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a5_acc, a5time)</span>
+<span class="hl std">svmR</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a6_acc, a6time)</span>
+<span class="hl std">l_v_q</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(a7_acc, a7time)</span>
+
+<span class="hl std">tb_final</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rbind</span><span class="hl std">(r_part, rF, gbm_, n_net, n_b, svmR, l_v_q)</span>
+<span class="hl std">n_tb</span><span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;rpart&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;rF&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;gbm&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;nnet&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;nb&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;svmR&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;lvq&quot;</span><span class="hl std">)</span>
+
+<span class="hl kwd">plot</span><span class="hl std">(tb_final,</span> <span class="hl kwc">main</span><span class="hl std">=</span><span class="hl str">&quot;Plot of Time vs Accuracy of several training methods&quot;</span><span class="hl std">,</span>
+     <span class="hl kwc">xlab</span><span class="hl std">=</span><span class="hl str">&quot;Accuracy (0 - 1)&quot;</span><span class="hl std">,</span>
+     <span class="hl kwc">ylab</span><span class="hl std">=</span><span class="hl str">&quot;Time taken (seconds)&quot;</span><span class="hl std">,)</span>
+<span class="hl kwd">textxy</span><span class="hl std">(tb_final[,</span><span class="hl num">1</span><span class="hl std">], tb_final[,</span><span class="hl num">2</span><span class="hl std">], n_tb,</span> <span class="hl kwc">cex</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-10-1.png" title="plot of chunk unnamed-chunk-10" alt="plot of chunk unnamed-chunk-10" class="plot" /></div></div>
+<p>Interestingly, time alone seems unrelated to accuracy, however the more accurate methods did tend to take more time.  
+
+Random Forest generated the best accuracy.
+The final prediction from the random forest model was:
+<div class="chunk" id="unnamed-chunk-11"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">predictfinal</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E
+</pre></div>
+</div></div>
+</p>
+</body>
+</html>
